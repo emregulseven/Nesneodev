@@ -1,0 +1,192 @@
+import java.util.*;
+
+public class KuantumAmbari {
+    static Scanner sc = new Scanner(System.in);
+    static Random rnd = new Random();
+    static List<KuantumNesnesi> envanter = new ArrayList<>();
+
+    public static void main(String[] args) {
+        try {
+            while (true) {
+                System.out.println("\nKUANTUM AMBARI KONTROL PANELİ");
+                System.out.println("1. Yeni Nesne Ekle");
+                System.out.println("2. Tüm Envanteri Listele");
+                System.out.println("3. Nesneyi Analiz Et (ID ile)");
+                System.out.println("4. Acil Durum Soğutması Yap (ID ile)");
+                System.out.println("5. Çıkış");
+                System.out.print("Seçiminiz: ");
+                
+                String sec = sc.nextLine().trim();
+
+                switch (sec) {
+                    case "1": YeniNesneUret(); break;
+                    case "2": Listele(); break;
+                    case "3": AnalizIste(); break;
+                    case "4": SogutmaIste(); break;
+                    case "5": return;
+                    default: System.out.println("Geçersiz seçim."); break;
+                }
+            }
+        } catch (KuantumCokusuException ex) {
+            System.out.println("\n\nSİSTEM ÇÖKTÜ! TAHLİYE BAŞLATILIYOR...");
+            System.out.println(ex.getMessage());
+        }
+    }
+
+    static void YeniNesneUret() {
+        int tip = rnd.nextInt(3) + 1;
+        String id = UUID.randomUUID().toString().substring(0, 8);
+        double s = 30 + rnd.nextInt(71);
+
+        switch (tip) {
+            case 1:
+                envanter.add(new VeriPaketi(id, s));
+                System.out.println("VeriPaketi eklendi. ID: " + id);
+                break;
+            case 2:
+                envanter.add(new KaranlikMadde(id, s, 3 + rnd.nextInt(5))); 
+                System.out.println("KaranlıkMadde eklendi. ID: " + id);
+                break;
+            case 3:
+                envanter.add(new AntiMadde(id, s, 7 + rnd.nextInt(3))); 
+                System.out.println("AntiMadde eklendi. ID: " + id);
+                break;
+        }
+    }
+
+    static void Listele() {
+        if (envanter.isEmpty()) { 
+            System.out.println("Envanter boş."); 
+            return; 
+        }
+        for (KuantumNesnesi n : envanter) {
+            System.out.println(n.DurumBilgisi());
+        }
+    }
+
+    static KuantumNesnesi Bul(String id) {
+        for (KuantumNesnesi n : envanter) {
+            if (n.getID().equals(id)) return n;
+        }
+        return null;
+    }
+
+    static void AnalizIste() {
+        System.out.print("Analiz edilecek nesnenin ID'si: ");
+        String id = sc.nextLine().trim();
+        KuantumNesnesi n = Bul(id);
+        
+        if (n == null) { 
+            System.out.println("ID bulunamadı."); 
+            return; 
+        }
+        
+        n.AnalizEt();
+        System.out.println("Analiz sonrası: " + n.DurumBilgisi());
+    }
+
+    static void SogutmaIste() {
+        System.out.print("Soğutulacak nesnenin ID'si: ");
+        String id = sc.nextLine().trim();
+        KuantumNesnesi n = Bul(id);
+        
+        if (n == null) { 
+            System.out.println("ID bulunamadı."); 
+            return; 
+        }
+        
+        if (n instanceof IKritik) {
+            ((IKritik) n).AcilDurumSogutmasi();
+            System.out.println("Soğutma sonrası: " + n.DurumBilgisi());
+        } else {
+            System.out.println("Bu nesne soğutulamaz!");
+        }
+    }
+}
+
+class KuantumCokusuException extends RuntimeException {
+    public KuantumCokusuException(String id) {
+        super("Kuantum çöküşü! Patlayan nesne ID: " + id);
+    }
+}
+
+interface IKritik {
+    void AcilDurumSogutmasi();
+}
+
+abstract class KuantumNesnesi {
+    private String ID;
+    private double stabilite;
+    private int tehlikeSeviyesi;
+
+    public KuantumNesnesi(String id, double stabilite, int tehlike) {
+        this.ID = id;
+        if (tehlike < 1) this.tehlikeSeviyesi = 1;
+        else if (tehlike > 10) this.tehlikeSeviyesi = 10;
+        else this.tehlikeSeviyesi = tehlike;
+        
+        setStabilite(stabilite);
+    }
+
+    public String getID() { return ID; }
+
+    public double getStabilite() { return stabilite; }
+
+    public void setStabilite(double s) {
+        if (s > 100) stabilite = 100;
+        else if (s < 0) stabilite = 0;
+        else stabilite = s;
+
+        if (stabilite <= 0) throw new KuantumCokusuException(ID);
+    }
+
+    public int getTehlikeSeviyesi() { return tehlikeSeviyesi; }
+
+    public abstract void AnalizEt();
+
+    public String DurumBilgisi() {
+        return "ID: " + ID + " | Stabilite: " + String.format(Locale.US, "%.2f", stabilite) + " | Tehlike: " + tehlikeSeviyesi;
+    }
+}
+
+class VeriPaketi extends KuantumNesnesi {
+    public VeriPaketi(String id, double s) { super(id, s, 1); }
+    
+    @Override
+    public void AnalizEt() {
+        System.out.println("Veri içeriği okundu.");
+        setStabilite(getStabilite() - 5);
+    }
+}
+
+class KaranlikMadde extends KuantumNesnesi implements IKritik {
+    public KaranlikMadde(String id, double s, int t) { super(id, s, t); }
+    
+    @Override
+    public void AnalizEt() {
+        System.out.println("Karanlık madde analiz ediliyor...");
+        setStabilite(getStabilite() - 15);
+    }
+    
+    @Override
+    public void AcilDurumSogutmasi() {
+        setStabilite(getStabilite() + 50);
+        System.out.println("Acil soğutma uygulandı.");
+    }
+}
+
+class AntiMadde extends KuantumNesnesi implements IKritik {
+    public AntiMadde(String id, double s, int t) { super(id, s, t); }
+    
+    @Override
+    public void AnalizEt() {
+        System.out.println("Evrenin dokusu titriyor...");
+        setStabilite(getStabilite() - 25);
+    }
+    
+    @Override
+    public void AcilDurumSogutmasi() {
+        setStabilite(getStabilite() + 50);
+        System.out.println("Acil soğutma uygulandı.");
+    }
+}
