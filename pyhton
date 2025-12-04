@@ -1,0 +1,146 @@
+import uuid
+import random
+from abc import ABC, abstractmethod
+
+class KuantumCokusuException(Exception):
+    def __init__(self, id):
+        super().__init__(f"Kuantum çöküşü! Patlayan nesne ID: {id}")
+
+class IKritik:
+    def AcilDurumSogutmasi(self):
+        raise NotImplementedError
+
+class KuantumNesnesi(ABC):
+    def __init__(self, id, stabilite, tehlike):
+        self.ID = id
+        self._stabilite = None
+        self.stabilite = stabilite
+        self.tehlikeSeviyesi = max(1, min(10, tehlike))
+
+    @property
+    def stabilite(self):
+        return self._stabilite
+
+    @stabilite.setter
+    def stabilite(self, value):
+        if value > 100:
+            self._stabilite = 100
+        elif value < 0:
+            self._stabilite = 0
+        else:
+            self._stabilite = value
+        if self._stabilite <= 0:
+            raise KuantumCokusuException(self.ID)
+
+    @abstractmethod
+    def AnalizEt(self):
+        pass
+
+    def DurumBilgisi(self):
+        return f"ID: {self.ID} | Stabilite: {self.stabilite:.2f} | Tehlike: {self.tehlikeSeviyesi}"
+
+class VeriPaketi(KuantumNesnesi):
+    def __init__(self, id, stabilite):
+        super().__init__(id, stabilite, 1)
+    def AnalizEt(self):
+        print("Veri içeriği okundu.")
+        self.stabilite = self.stabilite - 5
+
+class KaranlikMadde(KuantumNesnesi, IKritik):
+    def __init__(self, id, stabilite, tehlike):
+        super().__init__(id, stabilite, tehlike)
+    def AnalizEt(self):
+        print("Karanlık madde analiz ediliyor...")
+        self.stabilite = self.stabilite - 15
+    def AcilDurumSogutmasi(self):
+        self.stabilite = self.stabilite + 50
+        print("Acil soğutma uygulandı.")
+
+class AntiMadde(KuantumNesnesi, IKritik):
+    def __init__(self, id, stabilite, tehlike):
+        super().__init__(id, stabilite, tehlike)
+    def AnalizEt(self):
+        print("Evrenin dokusu titriyor...")
+        self.stabilite = self.stabilite - 25
+    def AcilDurumSogutmasi(self):
+        self.stabilite = self.stabilite + 50
+        print("Acil soğutma uygulandı.")
+
+envanter = []
+
+def yeni_nesne_uret():
+    tip = random.randint(1,3)
+    id = str(uuid.uuid4())[:8]
+    s = random.randint(30,100)
+    if tip == 1:
+        envanter.append(VeriPaketi(id, s))
+        print(f"VeriPaketi eklendi. ID: {id}")
+    elif tip == 2:
+        envanter.append(KaranlikMadde(id, s, random.randint(3,7)))
+        print(f"KaranlıkMadde eklendi. ID: {id}")
+    else:
+        envanter.append(AntiMadde(id, s, random.randint(7,9)))
+        print(f"AntiMadde eklendi. ID: {id}")
+
+def listele():
+    if not envanter:
+        print("Envanter boş.")
+        return
+    for n in envanter:
+        print(n.DurumBilgisi())
+
+def bul(id):
+    for n in envanter:
+        if n.ID == id:
+            return n
+    return None
+
+def analiz_iste():
+    id = input("Analiz edilecek nesnenin ID'si: ").strip()
+    n = bul(id)
+    if not n:
+        print("ID bulunamadı.")
+        return
+    n.AnalizEt()
+    print("Analiz sonrası:", n.DurumBilgisi())
+
+def sogutma_iste():
+    id = input("Soğutulacak nesnenin ID'si: ").strip()
+    n = bul(id)
+    if not n:
+        print("ID bulunamadı.")
+        return
+    if hasattr(n, "AcilDurumSogutmasi"):
+        n.AcilDurumSogutmasi()
+        print("Soğutma sonrası:", n.DurumBilgisi())
+    else:
+        print("Bu nesne soğutulamaz!")
+
+def main():
+    try:
+        while True:
+            print("\nKUANTUM AMBARI KONTROL PANELİ")
+            print("1. Yeni Nesne Ekle")
+            print("2. Tüm Envanteri Listele")
+            print("3. Nesneyi Analiz Et (ID ile)")
+            print("4. Acil Durum Soğutması Yap (ID ile)")
+            print("5. Çıkış")
+            sec = input("Seçiminiz: ").strip()
+            if sec == "1":
+                yeni_nesne_uret()
+            elif sec == "2":
+                listele()
+            elif sec == "3":
+                analiz_iste()
+            elif sec == "4":
+                sogutma_iste()
+            elif sec == "5":
+                return
+            else:
+                print("Geçersiz seçim.")
+    except KuantumCokusuException as ex:
+        print("\n\nSİSTEM ÇÖKTÜ! TAHLİYE BAŞLATILIYOR...")
+        print(ex)
+
+if __name__ == "__main__":
+    main()
